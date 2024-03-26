@@ -1,0 +1,284 @@
+{
+	"info": {
+		"_postman_id": "8daffc6c-aa3c-4c9f-bb06-ae48d8ec52f6",
+		"name": "VAULT",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "18582597"
+	},
+	"item": [
+		{
+			"name": "Creating A New Signing Account",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{}"
+				},
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/accounts",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Importing An Existing Private Key",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"privateKey\":\"xprv9s21ZrQH143K2Qf8cTorFDQtxitVM9wH12ZjygYBErCijiF9sY23gUddukc1V3kdwnRv8QquThSZJ6sNr9xEPTQmUv1pua1HK7Q6qFPi1QF\"}"
+				},
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/accounts",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"accounts"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Importing An Memonic",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"memonic\": \"lens spawn future swamp spot shed van mammal lake blind endorse figure\",\r\n    \"password\": \"\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/import/memonic",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"import",
+						"memonic"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "List Existing Accounts",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/accounts?list=true",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"accounts"
+					],
+					"query": [
+						{
+							"key": "list",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Reading Individual Accounts",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/accounts/0x6f168b782f7c138e8701e2085ea6b5ccde641731",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"accounts",
+						"0x6f168b782f7c138e8701e2085ea6b5ccde641731"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Sign A Transaction",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"to\": \"0xb1d73e2b859db6099fbe64e76ffe0cb877bd3776\",\r\n    \"data\": \"60fe47b10000000000000000000000000000000000000000000000000000000000000005\",\r\n    //\"input\": \"0x1\",\r\n    \"value\": 0,\r\n    \"nonce\": \"0x0\",\r\n    \"gas\": \"0x0\",\r\n    //\"gasPrice\": \"0x1\",\r\n    \"chainId\": \"1106390279\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/accounts/0x6f168b782f7c138e8701e2085ea6b5ccde641731/sign",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"accounts",
+						"0x6f168b782f7c138e8701e2085ea6b5ccde641731",
+						"sign"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Sign A Transaction Copy",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"to\": \"0xb1d73e2b859db6099fbe64e76ffe0cb877bd3776\",\r\n    \"data\": \"60fe47b10000000000000000000000000000000000000000000000000000000000000005\",\r\n    //\"input\": \"0x1\",\r\n    \"value\": 0,\r\n    \"nonce\": \"1\",\r\n    \"gas\": \"0x0\",\r\n    \"gasPrice\": \"0x1\",\r\n    \"chainId\": \"1106390279\"\r\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/accounts/0xccd5a76e30953993241462a19d183f338973f31e/sign",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"accounts",
+						"0xccd5a76e30953993241462a19d183f338973f31e",
+						"sign"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Export An Account",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/export/accounts/0x0484ed026cf2780e577679f332412186fc283b4d",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"export",
+						"accounts",
+						"0x0484ed026cf2780e577679f332412186fc283b4d"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

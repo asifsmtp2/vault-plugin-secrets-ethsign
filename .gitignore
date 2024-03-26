@@ -2,5 +2,9 @@ coverage.txt
 **/debug.test
 # binary from "make" build
 ethsign
+ethsign.exe
+go.sum
 # binary from "go build"
 vault-plugin-secrets-ethsign
+
+go.sum
