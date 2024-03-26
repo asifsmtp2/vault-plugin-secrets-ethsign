@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -29,6 +30,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/hashicorp/vault/sdk/framework"
 	"github.com/hashicorp/vault/sdk/logical"
+	"github.com/tyler-smith/go-bip32"
+	"github.com/tyler-smith/go-bip39"
 	"golang.org/x/crypto/sha3"
 )
 
@@ -39,9 +42,10 @@ const (
 
 // Account is an Ethereum account
 type Account struct {
-	Address    string `json:"address"`
-	PrivateKey string `json:"private_key"`
-	PublicKey  string `json:"public_key"`
+	Address       string `json:"address"`
+	PrivateKey    string `json:"private_key"`
+	PrivateKeyExt string `json:"private_key_ext"`
+	PublicKey     string `json:"public_key"`
 }
 
 func paths(b *backend) []*framework.Path {
@@ -49,6 +53,7 @@ func paths(b *backend) []*framework.Path {
 		pathCreateAndList(b),
 		pathReadAndDelete(b),
 		pathSign(b),
+		pathImport(b),
 		pathExport(b),
 	}
 }
@@ -68,24 +73,46 @@ func (b *backend) createAccount(ctx context.Context, req *logical.Request, data 
 	var privateKey *ecdsa.PrivateKey
 	var privateKeyString string
 	var err error
-
+	var str_privateKey string
 	if keyInput != "" {
-    re := regexp.MustCompile("[0-9a-fA-F]{64}$")
-    key := re.FindString(keyInput)
-    if key == "" {
-      b.Logger().Error("Input private key did not parse successfully", "privateKey", keyInput)
-      return nil, fmt.Errorf("privateKey must be a 32-byte hexidecimal string")
-    }
-		privateKey, err = crypto.HexToECDSA(key)
-		if err != nil {
-			b.Logger().Error("Error reconstructing private key from input hex", "error", err)
-			return nil, fmt.Errorf("Error reconstructing private key from input hex")
+
+		var lengthkeyInput = len(keyInput)
+
+		if lengthkeyInput == 111 {
+			masterPrivateKey, _ := bip32.B58Deserialize(keyInput) // 
+			str_privateKey = masterPrivateKey.String()
+			privateKeyString = hexutil.Encode(masterPrivateKey.Key)[2:]
+			privateKey, _ = crypto.HexToECDSA(privateKeyString)
+
+		} else {
+			re := regexp.MustCompile("[0-9a-fA-F]{64}$") //[0-9a-zA-Z]{111}$
+			key := re.FindString(keyInput)
+			if key == "" {
+				b.Logger().Error("Input private key did not parse successfully", "privateKey", keyInput)
+				return nil, fmt.Errorf("privateKey must be a 32-byte hexidecimal string")
+			}
+			privateKey, err = crypto.HexToECDSA(key)
+			if err != nil {
+				b.Logger().Error("Error reconstructing private key from input hex", "error", err)
+				return nil, fmt.Errorf("Error reconstructing private key from input hex")
+			}
+			privateKeyString = key
 		}
-		privateKeyString = key
+
 	} else {
-		privateKey, _ = crypto.GenerateKey()
-		privateKeyBytes := crypto.FromECDSA(privateKey)
-		privateKeyString = hexutil.Encode(privateKeyBytes)[2:]
+		entropy, _ := bip39.NewEntropy(256)
+		mnemonic, _ := bip39.NewMnemonic(entropy)
+	  
+		
+		// Generate a Bip32 HD wallet for the mnemonic and a user supplied password
+		seed := bip39.NewSeed(mnemonic, "")
+
+		//
+		masterPrivateKey, _ := bip32.NewMasterKey(seed)
+		str_privateKey = masterPrivateKey.String()
+		privateKeyString = hexutil.Encode(masterPrivateKey.Key)[2:]
+		privateKey, _ = crypto.HexToECDSA(privateKeyString)
+
 	}
 
 	defer ZeroKey(privateKey)
@@ -102,9 +129,10 @@ func (b *backend) createAccount(ctx context.Context, req *logical.Request, data 
 	accountPath := fmt.Sprintf("accounts/%s", address)
 
 	accountJSON := &Account{
-		Address:    address,
-		PrivateKey: privateKeyString,
-		PublicKey:  publicKeyString,
+		Address:       address,
+		PrivateKey:    privateKeyString,
+		PrivateKeyExt: str_privateKey,
+		PublicKey:     publicKeyString,
 	}
 
 	entry, _ := logical.StorageEntryJSON(accountPath, accountJSON)
@@ -152,8 +180,9 @@ func (b *backend) exportAccount(ctx context.Context, req *logical.Request, data 
 
 	return &logical.Response{
 		Data: map[string]interface{}{
-			"address":    account.Address,
-			"privateKey": account.PrivateKey,
+			"address":       account.Address,
+			"privateKey":    account.PrivateKey,
+			"privateKeyExt": account.PrivateKeyExt,
 		},
 	}, nil
 }
@@ -310,4 +339,54 @@ func ZeroKey(k *ecdsa.PrivateKey) {
 	for i := range b {
 		b[i] = 0
 	}
+}
+
+func (b *backend) memonic(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	var err error
+	b.Logger().Info("in method memonic")
+	memonic := data.Get("memonic").(string)
+	password := data.Get("password").(string)
+	//
+	b.Logger().Info("in method memonic - ", "memonic", memonic)
+	b.Logger().Info("in method memonic - ", "hdpasswordath", password)
+	//
+	seed, _ := bip39.NewSeedWithErrorChecking(memonic, password)
+	masterPrivateKey, _ := bip32.NewMasterKey(seed)
+	stringEncodedmasterKey := masterPrivateKey.String()
+	privateKeyString := hexutil.Encode(masterPrivateKey.Key)[2:]
+
+	masterPrivateKeyyECDSA, _ := crypto.HexToECDSA(privateKeyString)
+
+	publicKey := masterPrivateKeyyECDSA.Public()
+	publicKeyECDSA, _ := publicKey.(*ecdsa.PublicKey)
+	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
+	publicKeyString := hexutil.Encode(publicKeyBytes)[4:]
+
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(publicKeyBytes[1:])
+	address := hexutil.Encode(hash.Sum(nil)[12:])
+
+	accountPath := fmt.Sprintf("accounts/%s", address)
+
+	accountJSON := &Account{
+		Address:       address,
+		PrivateKey:    privateKeyString,
+		PrivateKeyExt: stringEncodedmasterKey,
+		PublicKey:     publicKeyString,
+	}
+
+	entry, _ := logical.StorageEntryJSON(accountPath, accountJSON)
+	err = req.Storage.Put(ctx, entry)
+	if err != nil {
+		b.Logger().Error("Failed to save the new account to storage", "error", err)
+		return nil, err
+	}
+
+	return &logical.Response{
+		Data: map[string]interface{}{
+			"address":       strings.ToLower(address),
+			"privateKey":    privateKeyString,
+			"privateKeyExt": stringEncodedmasterKey,
+		},
+	}, nil
 }
