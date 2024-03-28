@@ -497,6 +497,21 @@ func TestSignTxFailure1(t *testing.T) {
 	assert.Equal("hex string of odd length", err.Error())
 }
 
+
+func TestIndexSignTxFailure1(t *testing.T) {
+	assert := assert.New(t)
+
+	b, _ := getBackend(t)
+	req := logical.TestRequest(t, logical.CreateOperation, "index/1/0xf809410b0d6f047c603deb311979cd413e025a84/sign")
+	sm := newStorageMock()
+	req.Storage = sm
+	req.Data["data"] = "0xabc"
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	assert.Nil(resp)
+	assert.Equal("hex string of odd length", err.Error())
+}
+
 func TestSignTxFailure2(t *testing.T) {
 	assert := assert.New(t)
 

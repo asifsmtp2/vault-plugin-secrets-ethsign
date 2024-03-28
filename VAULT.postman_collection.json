@@ -164,7 +164,7 @@
 					}
 				],
 				"url": {
-					"raw": "http://localhost:8200/v1/ethereum/accounts/0x6f168b782f7c138e8701e2085ea6b5ccde641731",
+					"raw": "http://localhost:8200/v1/ethereum/accounts/0x0484ed026cf2780e577679f332412186fc283b4d",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -174,7 +174,7 @@
 						"v1",
 						"ethereum",
 						"accounts",
-						"0x6f168b782f7c138e8701e2085ea6b5ccde641731"
+						"0x0484ed026cf2780e577679f332412186fc283b4d"
 					]
 				}
 			},
@@ -199,7 +199,7 @@
 					"raw": "{\r\n    \"to\": \"0xb1d73e2b859db6099fbe64e76ffe0cb877bd3776\",\r\n    \"data\": \"60fe47b10000000000000000000000000000000000000000000000000000000000000005\",\r\n    //\"input\": \"0x1\",\r\n    \"value\": 0,\r\n    \"nonce\": \"0x0\",\r\n    \"gas\": \"0x0\",\r\n    //\"gasPrice\": \"0x1\",\r\n    \"chainId\": \"1106390279\"\r\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8200/v1/ethereum/accounts/0x6f168b782f7c138e8701e2085ea6b5ccde641731/sign",
+					"raw": "http://localhost:8200/v1/ethereum/accounts/0x0484ed026cf2780e577679f332412186fc283b4d/sign",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -209,7 +209,7 @@
 						"v1",
 						"ethereum",
 						"accounts",
-						"0x6f168b782f7c138e8701e2085ea6b5ccde641731",
+						"0x0484ed026cf2780e577679f332412186fc283b4d",
 						"sign"
 					]
 				}
@@ -217,7 +217,7 @@
 			"response": []
 		},
 		{
-			"name": "Sign A Transaction Copy",
+			"name": "Sign A Transaction Index",
 			"request": {
 				"method": "POST",
 				"header": [
@@ -232,10 +232,10 @@
 				],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n    \"to\": \"0xb1d73e2b859db6099fbe64e76ffe0cb877bd3776\",\r\n    \"data\": \"60fe47b10000000000000000000000000000000000000000000000000000000000000005\",\r\n    //\"input\": \"0x1\",\r\n    \"value\": 0,\r\n    \"nonce\": \"1\",\r\n    \"gas\": \"0x0\",\r\n    \"gasPrice\": \"0x1\",\r\n    \"chainId\": \"1106390279\"\r\n}"
+					"raw": "{\r\n    \"to\": \"0xb1d73e2b859db6099fbe64e76ffe0cb877bd3776\",\r\n    \"data\": \"60fe47b10000000000000000000000000000000000000000000000000000000000000005\",\r\n    //\"input\": \"0x1\",\r\n    \"value\": 0,\r\n    \"nonce\": \"0x0\",\r\n    \"gas\": \"0x0\",\r\n    //\"gasPrice\": \"0x1\",\r\n    \"chainId\": \"1106390279\"\r\n}"
 				},
 				"url": {
-					"raw": "http://localhost:8200/v1/ethereum/accounts/0xccd5a76e30953993241462a19d183f338973f31e/sign",
+					"raw": "http://localhost:8200/v1/ethereum/index/0x0484ed026cf2780e577679f332412186fc283b4d/sign",
 					"protocol": "http",
 					"host": [
 						"localhost"
@@ -244,8 +244,8 @@
 					"path": [
 						"v1",
 						"ethereum",
-						"accounts",
-						"0xccd5a76e30953993241462a19d183f338973f31e",
+						"index",
+						"0x0484ed026cf2780e577679f332412186fc283b4d",
 						"sign"
 					]
 				}
@@ -274,6 +274,35 @@
 						"ethereum",
 						"export",
 						"accounts",
+						"0x0484ed026cf2780e577679f332412186fc283b4d"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Export An Account index",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer root"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:8200/v1/ethereum/export/accounts/0/0x0484ed026cf2780e577679f332412186fc283b4d",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8200",
+					"path": [
+						"v1",
+						"ethereum",
+						"export",
+						"accounts",
+						"0",
 						"0x0484ed026cf2780e577679f332412186fc283b4d"
 					]
 				}

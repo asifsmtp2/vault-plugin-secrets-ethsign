@@ -53,8 +53,10 @@ func paths(b *backend) []*framework.Path {
 		pathCreateAndList(b),
 		pathReadAndDelete(b),
 		pathSign(b),
+		pathSignIndex(b),
 		pathImport(b),
 		pathExport(b),
+		pathExportIndex(b),
 	}
 }
 
@@ -79,7 +81,7 @@ func (b *backend) createAccount(ctx context.Context, req *logical.Request, data 
 		var lengthkeyInput = len(keyInput)
 
 		if lengthkeyInput == 111 {
-			masterPrivateKey, _ := bip32.B58Deserialize(keyInput) // 
+			masterPrivateKey, _ := bip32.B58Deserialize(keyInput) //
 			str_privateKey = masterPrivateKey.String()
 			privateKeyString = hexutil.Encode(masterPrivateKey.Key)[2:]
 			privateKey, _ = crypto.HexToECDSA(privateKeyString)
@@ -102,8 +104,7 @@ func (b *backend) createAccount(ctx context.Context, req *logical.Request, data 
 	} else {
 		entropy, _ := bip39.NewEntropy(256)
 		mnemonic, _ := bip39.NewMnemonic(entropy)
-	  
-		
+
 		// Generate a Bip32 HD wallet for the mnemonic and a user supplied password
 		seed := bip39.NewSeed(mnemonic, "")
 
@@ -187,6 +188,47 @@ func (b *backend) exportAccount(ctx context.Context, req *logical.Request, data 
 	}, nil
 }
 
+func (b *backend) exportIndexAccount(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	address := data.Get("name").(string)
+	b.Logger().Info("Retrieving account for address", "address", address)
+
+	index := data.Get("index").(int)
+
+	uindex := uint32(index)
+
+	account, err := b.retrieveAccount(ctx, req, address)
+	if err != nil {
+		return nil, err
+	}
+	if account == nil {
+		return nil, fmt.Errorf("Account does not exist")
+	}
+
+	mastkey, _ := bip32.B58Deserialize(account.PrivateKeyExt)
+	childprivateKey, _ := mastkey.NewChildKey(uindex)
+	childprivateKeyStr := childprivateKey.String()
+	childprivateKeyHEX := hexutil.Encode(childprivateKey.Key)[2:]
+
+	masterPrivateKeyyECDSA, _ := crypto.HexToECDSA(childprivateKeyHEX)
+
+	publicKey := masterPrivateKeyyECDSA.Public()
+	publicKeyECDSA, _ := publicKey.(*ecdsa.PublicKey)
+	publicKeyBytes := crypto.FromECDSAPub(publicKeyECDSA)
+	//	publicKeyString := hexutil.Encode(publicKeyBytes)[4:]
+
+	hash := sha3.NewLegacyKeccak256()
+	hash.Write(publicKeyBytes[1:])
+	childaddress := hexutil.Encode(hash.Sum(nil)[12:])
+
+	return &logical.Response{
+		Data: map[string]interface{}{
+			"address":       childaddress,
+			"privateKey":    childprivateKeyHEX,
+			"privateKeyExt": childprivateKeyStr,
+		},
+	}, nil
+}
+
 func (b *backend) deleteAccount(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	address := data.Get("name").(string)
 	account, err := b.retrieveAccount(ctx, req, address)
@@ -229,6 +271,108 @@ func (b *backend) retrieveAccount(ctx context.Context, req *logical.Request, add
 		_ = entry.DecodeJSON(&account)
 		return &account, nil
 	}
+}
+
+func (b *backend) signIndexTx(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
+	b.Logger().Info("in method signIndexTx - ")
+	from := data.Get("name").(string)
+	index := data.Get("index").(int)
+
+	uindex := uint32(index)
+
+	b.Logger().Info("in method signIndexTx - ", "index", uindex)
+	var txDataToSign []byte
+	dataInput := data.Get("data").(string)
+	// some client such as go-ethereum uses "input" instead of "data"
+	if dataInput == "" {
+		dataInput = data.Get("input").(string)
+	}
+	if len(dataInput) > 2 && dataInput[0:2] != "0x" {
+		dataInput = "0x" + dataInput
+	}
+
+	txDataToSign, err := hexutil.Decode(dataInput)
+	if err != nil {
+		b.Logger().Error("Failed to decode payload for the 'data' field", "error", err)
+		return nil, err
+	}
+
+	account, err := b.retrieveAccount(ctx, req, from)
+	if err != nil {
+		b.Logger().Error("Failed to retrieve the signing account", "address", from, "error", err)
+		return nil, fmt.Errorf("Error retrieving signing account %s", from)
+	}
+	if account == nil {
+		return nil, fmt.Errorf("Signing account %s does not exist", from)
+	}
+	amount := ValidNumber(data.Get("value").(string))
+	if amount == nil {
+		b.Logger().Error("Invalid amount for the 'value' field", "value", data.Get("value").(string))
+		return nil, fmt.Errorf("Invalid amount for the 'value' field")
+	}
+
+	rawAddressTo := data.Get("to").(string)
+
+	chainId := ValidNumber(data.Get("chainId").(string))
+	if chainId == nil {
+		b.Logger().Error("Invalid chainId", "chainId", data.Get("chainId").(string))
+		return nil, fmt.Errorf("Invalid 'chainId' value")
+	}
+
+	gasLimitIn := ValidNumber(data.Get("gas").(string))
+	if gasLimitIn == nil {
+		b.Logger().Error("Invalid gas limit", "gas", data.Get("gas").(string))
+		return nil, fmt.Errorf("Invalid gas limit")
+	}
+	gasLimit := gasLimitIn.Uint64()
+
+	gasPrice := ValidNumber(data.Get("gasPrice").(string))
+
+	//
+	mastkey, _ := bip32.B58Deserialize(account.PrivateKeyExt)
+	childprivateKey, _ := mastkey.NewChildKey(uindex)
+
+	childprivateKeyHEX := hexutil.Encode(childprivateKey.Key)[2:]
+	//
+	privateKey, err := crypto.HexToECDSA(childprivateKeyHEX)
+	if err != nil {
+		b.Logger().Error("Error reconstructing private key from retrieved hex", "error", err)
+		return nil, fmt.Errorf("Error reconstructing private key from retrieved hex")
+	}
+	defer ZeroKey(privateKey)
+
+	nonceIn := ValidNumber(data.Get("nonce").(string))
+	var nonce uint64
+	nonce = nonceIn.Uint64()
+
+	var tx *types.Transaction
+	if rawAddressTo == "" {
+		tx = types.NewContractCreation(nonce, amount, gasLimit, gasPrice, txDataToSign)
+	} else {
+		toAddress := common.HexToAddress(rawAddressTo)
+		tx = types.NewTransaction(nonce, toAddress, amount, gasLimit, gasPrice, txDataToSign)
+	}
+	var signer types.Signer
+	if big.NewInt(0).Cmp(chainId) == 0 {
+		signer = types.HomesteadSigner{}
+	} else {
+		signer = types.NewEIP155Signer(chainId)
+	}
+	signedTx, err := types.SignTx(tx, signer, privateKey)
+	if err != nil {
+		b.Logger().Error("Failed to sign the transaction object", "error", err)
+		return nil, err
+	}
+
+	var signedTxBuff bytes.Buffer
+	signedTx.EncodeRLP(&signedTxBuff)
+
+	return &logical.Response{
+		Data: map[string]interface{}{
+			"transaction_hash":   signedTx.Hash().Hex(),
+			"signed_transaction": hexutil.Encode(signedTxBuff.Bytes()),
+		},
+	}, nil
 }
 
 func (b *backend) signTx(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
