@@ -415,6 +415,27 @@ func TestReadAccountsFailure4(t *testing.T) {
 	assert.Nil(resp)
 }
 
+func TestExportIndexAccountFailure1(t *testing.T) {
+	assert := assert.New(t)
+
+	b, _ := getBackend(t)
+
+	//
+
+	//req := logical.TestRequest(t, logical.UpdateOperation, "accounts")
+
+	//sm := newStorageMock()
+
+	req := logical.TestRequest(t, logical.ReadOperation, "export/accounts/1/0x0484ed026cf2780e577679f332412186fc283b4d")
+	storage := req.Storage
+	req.Storage = storage
+	req.Data["hdpath"] = "m/84'/0'/0'/0/"
+	resp, err := b.HandleRequest(context.Background(), req)
+
+	assert.Nil(resp)
+	assert.Equal("Bang for Get!", err.Error())
+}
+
 func TestExportAccountsFailure1(t *testing.T) {
 	assert := assert.New(t)
 
@@ -496,7 +517,6 @@ func TestSignTxFailure1(t *testing.T) {
 	assert.Nil(resp)
 	assert.Equal("hex string of odd length", err.Error())
 }
-
 
 func TestIndexSignTxFailure1(t *testing.T) {
 	assert := assert.New(t)

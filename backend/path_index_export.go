@@ -11,16 +11,21 @@ func pathExportIndex(b *backend) *framework.Path {
 		HelpSynopsis: "Export an Ethereum account",
 		HelpDescription: `
 
-    GET - return the account by the name with the private key
+    POST - return the account by the name with the private key
 
     `,
 		Fields: map[string]*framework.FieldSchema{
 			"index": &framework.FieldSchema{Type: framework.TypeInt},
 			"name":  &framework.FieldSchema{Type: framework.TypeString},
+			"hdpath": &framework.FieldSchema{
+				Type:        framework.TypeString,
+				Description: "DerivationPath represents the computer friendly version of a hierarchical",
+				Default:     "m/44'/60'/0'/0/",
+			},
 		},
 		ExistenceCheck: b.pathExistenceCheck,
 		Callbacks: map[logical.Operation]framework.OperationFunc{
-			logical.ReadOperation: b.exportIndexAccount,
+			logical.CreateOperation: b.exportIndexAccount,
 		},
 	}
 }

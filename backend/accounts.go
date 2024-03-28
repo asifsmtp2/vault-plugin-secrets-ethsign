@@ -21,8 +21,10 @@ import (
 	"fmt"
 	"math/big"
 	"regexp"
+	"strconv"
 	"strings"
 
+	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/common/math"
@@ -171,6 +173,7 @@ func (b *backend) readAccount(ctx context.Context, req *logical.Request, data *f
 func (b *backend) exportAccount(ctx context.Context, req *logical.Request, data *framework.FieldData) (*logical.Response, error) {
 	address := data.Get("name").(string)
 	b.Logger().Info("Retrieving account for address", "address", address)
+
 	account, err := b.retrieveAccount(ctx, req, address)
 	if err != nil {
 		return nil, err
@@ -193,9 +196,22 @@ func (b *backend) exportIndexAccount(ctx context.Context, req *logical.Request, 
 	b.Logger().Info("Retrieving account for address", "address", address)
 
 	index := data.Get("index").(int)
+	//uindex := uint32(index)
 
-	uindex := uint32(index)
+	hdpath := "m/44'/60'/0'/0/"
+	hdpathobj, ishdpath := data.GetOk("hdpath")
+	
+	if ishdpath {
+		hdpath = hdpathobj.(string)
+	} 
 
+	hdpath = hdpath + strconv.Itoa(index)
+	//
+	b.Logger().Info("in method exportAccount: ", "hdpath: ", hdpath)
+
+	parsed_path, err := accounts.ParseDerivationPath(hdpath)
+	b.Logger().Info("in method exportAccount - ", "parsed", len(parsed_path))
+	//
 	account, err := b.retrieveAccount(ctx, req, address)
 	if err != nil {
 		return nil, err
@@ -205,7 +221,17 @@ func (b *backend) exportIndexAccount(ctx context.Context, req *logical.Request, 
 	}
 
 	mastkey, _ := bip32.B58Deserialize(account.PrivateKeyExt)
-	childprivateKey, _ := mastkey.NewChildKey(uindex)
+	//
+	for _, n := range parsed_path {
+		mastkey, _ = mastkey.NewChildKey(n)
+		if err != nil {
+			return nil, err
+		}
+	}
+	childprivateKey := mastkey
+
+	//
+	//childprivateKey, _ := mastkey.NewChildKey(uindex)
 	childprivateKeyStr := childprivateKey.String()
 	childprivateKeyHEX := hexutil.Encode(childprivateKey.Key)[2:]
 
